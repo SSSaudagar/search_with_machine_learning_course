@@ -77,46 +77,35 @@ def create_feature_log_query(query, doc_ids, click_prior_query, featureset_name,
     ##### Step 3.b:
     # print("IMPLEMENT ME: create_feature_log_query")
     sltr = {
-        "script": {
-            "lang": "mustache",
-            "source": {
-                "size": size,
-                "query": {
-                    "bool": {
-                        "filter": [
-                            {
-                                "terms": {
-                                    terms_field: [
-                                        "{{sku}}"
-                                    ]
-                                }
-                            },
-                            {
-                                "sltr": {
-                                    "_name": "logged_featureset",
-                                    "featureset": featureset_name,
-                                    "store": ltr_store_name,
-                                    "params": {
-                                        "keywords": "{{user_query}}"
-                                    }
-                                }
+        'query': {
+            'bool': {
+                "filter": [  # use a filter so that we don't actually score anything
+                    {
+                        "terms": {
+                            terms_field: doc_ids
+                        }
+                    },
+                    {  # use the LTR query bring in the LTR feature set
+                        "sltr": {
+                            "_name": "logged_featureset",
+                            "featureset": featureset_name,
+                            "store": ltr_store_name,
+                            "params": {
+                                "keywords": query
                             }
-                        ]
-                    }
-                },
-                "ext": {
-                    "ltr_log": {
-                        "log_specs": {
-                            "name": "log_entry",
-                            "named_query": "logged_featureset"
                         }
                     }
-                }
+                ]
             }
         },
-        "params": {
-            "user_query": query,
-            "sku": doc_ids
+        # Turn on feature logging so that we get weights back for our features
+        "ext": {
+            "ltr_log": {
+                "log_specs": {
+                    "name": "log_entry",
+                    "named_query": "logged_featureset"
+                }
+            }
         }
     }
     return sltr
